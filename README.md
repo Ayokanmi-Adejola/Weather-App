@@ -25,6 +25,10 @@ A comprehensive, responsive weather application built with vanilla HTML, CSS, an
 - **Accessibility**: Full keyboard navigation, screen reader support, reduced motion
 - **Performance**: Debounced search, efficient DOM updates, optimized animations
 
+| Desktop design | Mobile design |
+| ------- | ------ |
+| ![Desktop](https://github.com/Ayokanmi-Adejola/Weather-App/blob/main/design/desktop-design-imperial.jpg?raw=true) | ![Mobile](https://github.com/Ayokanmi-Adejola/Weather-App/blob/main/design/mobile-design-imperial.jpg?raw=true) |
+
 ## 🚀 Getting Started
 
 1. Clone or download the project files
@@ -174,10 +178,3 @@ This project was built as a solution to the [Frontend Mentor Weather App Challen
 - 🚀 Additional features: Geolocation, Favorites, Themes, Animations
 - ♿ Enhanced accessibility and performance
 - 📱 Improved responsive design
-
----
-
-**Weather Now** - Your complete weather companion! 🌤️
-
-*Built with ❤️ using vanilla HTML, CSS, and JavaScript*
-#
