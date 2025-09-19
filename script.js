@@ -164,7 +164,8 @@ const api = {
   },
 
   // Get weather data
-  async getWeatherData(latitude, longitude) {
+  async getWeatherData(latitude, longitude, retryCount = 0) {
+    console.log('API: Fetching weather data for:', latitude, longitude, 'Retry:', retryCount);
     try {
       const params = new URLSearchParams({
         latitude: latitude,
@@ -205,15 +206,41 @@ const api = {
         forecast_days: 7
       });
 
-      const response = await fetch(`${API_CONFIG.weather}?${params}`);
-      
+      const url = `${API_CONFIG.weather}?${params}`;
+      console.log('API: Making request to:', url);
+
+      // Add timeout to the fetch request
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+      const response = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          'Accept': 'application/json',
+        }
+      });
+
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
-        throw new Error('Failed to fetch weather data');
+        console.error('API: Response not ok:', response.status, response.statusText);
+        throw new Error(`Failed to fetch weather data: ${response.status} ${response.statusText}`);
       }
-      
+
       const data = await response.json();
+      console.log('API: Successfully received data');
       return data;
     } catch (error) {
+      console.error('API: Error fetching weather data:', error);
+
+      // Retry up to 2 times with exponential backoff
+      if (retryCount < 2) {
+        const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s delays
+        console.log(`API: Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return this.getWeatherData(latitude, longitude, retryCount + 1);
+      }
+
       utils.showError('Failed to fetch weather data');
       return null;
     }
@@ -595,9 +622,11 @@ const geolocation = {
   },
 
   async loadCurrentLocationWeather() {
+    console.log('Attempting to get current location...');
     try {
       const position = await this.getCurrentPosition();
       const { latitude, longitude } = position.coords;
+      console.log('Got current position:', latitude, longitude);
 
       // Get location name from reverse geocoding (simplified)
       appState.currentLocation = {
@@ -609,12 +638,24 @@ const geolocation = {
       await weather.loadWeatherData(latitude, longitude);
     } catch (error) {
       console.log('Could not get current location:', error.message);
+
+      // Provide more specific error handling
+      if (error.code === 1) {
+        console.log('Geolocation permission denied, using default location');
+      } else if (error.code === 2) {
+        console.log('Geolocation position unavailable, using default location');
+      } else if (error.code === 3) {
+        console.log('Geolocation timeout, using default location');
+      }
+
       // Fallback to default location (Berlin)
-      this.loadDefaultLocation();
+      console.log('Falling back to default location...');
+      await this.loadDefaultLocation();
     }
   },
 
-  loadDefaultLocation() {
+  async loadDefaultLocation() {
+    console.log('Loading default location (Berlin)...');
     appState.currentLocation = {
       name: 'Berlin',
       country: 'Germany',
@@ -622,7 +663,14 @@ const geolocation = {
       longitude: 13.41053
     };
 
-    weather.loadWeatherData(52.52437, 13.41053);
+    try {
+      await weather.loadWeatherData(52.52437, 13.41053);
+    } catch (error) {
+      console.error('Failed to load default location weather:', error);
+      // Show sample data for demonstration purposes
+      console.log('Showing sample data for demonstration...');
+      weather.showSampleData();
+    }
   }
 };
 
@@ -790,20 +838,24 @@ const search = {
 // Weather data management
 const weather = {
   async loadWeatherData(latitude, longitude) {
+    console.log('Loading weather data for:', latitude, longitude);
     try {
       this.showLoading();
       const data = await api.getWeatherData(latitude, longitude);
+      console.log('Weather data received:', data);
 
       if (data) {
         appState.weatherData = data;
         this.displayWeatherData(data);
         this.showWeatherData();
+        console.log('Weather data displayed successfully');
       } else {
-        this.showError('Failed to load weather data');
+        console.log('No weather data received');
+        this.showError('Unable to load weather data. Please check your internet connection and try again.');
       }
     } catch (error) {
       console.error('Weather loading failed:', error);
-      this.showError('Failed to load weather data');
+      this.showError('Unable to connect to weather service. Please check your internet connection and try again.');
     }
   },
 
@@ -985,13 +1037,113 @@ const weather = {
   },
 
   showError(message) {
+    console.log('Showing error:', message);
+    console.log('Elements available:', {
+      loadingState: !!elements.loadingState,
+      weatherData: !!elements.weatherData,
+      errorState: !!elements.errorState
+    });
+
     if (elements.loadingState) elements.loadingState.classList.add('hidden');
     if (elements.weatherData) elements.weatherData.classList.add('hidden');
     if (elements.errorState) {
       elements.errorState.classList.remove('hidden');
       const errorMessage = elements.errorState.querySelector('#errorMessage');
-      if (errorMessage) errorMessage.textContent = message;
+      if (errorMessage) {
+        errorMessage.textContent = message;
+        console.log('Error message updated to:', message);
+      } else {
+        console.log('Error message element not found');
+      }
+    } else {
+      console.log('Error state element not found');
     }
+  },
+
+  showSampleData() {
+    console.log('Showing sample data for demonstration...');
+
+    // Hide loading and error states
+    if (elements.loadingState) elements.loadingState.classList.add('hidden');
+    if (elements.errorState) elements.errorState.classList.add('hidden');
+
+    // Show weather data
+    if (elements.weatherData) elements.weatherData.classList.remove('hidden');
+
+    // Update current weather with sample data
+    if (elements.currentLocation) elements.currentLocation.textContent = 'Berlin, Germany';
+    if (elements.currentDate) elements.currentDate.textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' });
+    if (elements.currentTemp) elements.currentTemp.textContent = '20°';
+    if (elements.currentDescription) elements.currentDescription.textContent = 'Clear sky';
+
+    // Update metrics with sample data
+    if (elements.feelsLike) elements.feelsLike.textContent = '18°';
+    if (elements.humidity) elements.humidity.textContent = '65%';
+    if (elements.windSpeed) elements.windSpeed.textContent = '12 km/h';
+    if (elements.precipitation) elements.precipitation.textContent = '0%';
+    if (elements.uvIndex) elements.uvIndex.textContent = '5';
+    if (elements.visibility) elements.visibility.textContent = '10 km';
+    if (elements.pressure) elements.pressure.textContent = '1013 hPa';
+    if (elements.sunrise) elements.sunrise.textContent = '6:30 AM';
+    if (elements.sunset) elements.sunset.textContent = '8:15 PM';
+
+    // Show sample hourly forecast
+    this.showSampleHourlyForecast();
+
+    // Show sample daily forecast
+    this.showSampleDailyForecast();
+  },
+
+  showSampleHourlyForecast() {
+    if (!elements.forecastHours) return;
+
+    const sampleHours = [
+      { time: '3 PM', temp: '20°', icon: './assets/images/icon-sunny.webp', alt: 'Sunny' },
+      { time: '4 PM', temp: '21°', icon: './assets/images/icon-sunny.webp', alt: 'Sunny' },
+      { time: '5 PM', temp: '20°', icon: './assets/images/icon-overcast.webp', alt: 'Overcast' },
+      { time: '6 PM', temp: '19°', icon: './assets/images/icon-overcast.webp', alt: 'Overcast' },
+      { time: '7 PM', temp: '18°', icon: './assets/images/icon-overcast.webp', alt: 'Overcast' },
+      { time: '8 PM', temp: '17°', icon: './assets/images/icon-overcast.webp', alt: 'Overcast' },
+      { time: '9 PM', temp: '16°', icon: './assets/images/icon-overcast.webp', alt: 'Overcast' },
+      { time: '10 PM', temp: '15°', icon: './assets/images/icon-overcast.webp', alt: 'Overcast' }
+    ];
+
+    const hoursHTML = sampleHours.map(hour => `
+      <div class="forecast-hour">
+        <div class="hour-time">${hour.time}</div>
+        <img src="${hour.icon}" alt="${hour.alt}" class="hour-icon">
+        <div class="hour-temp">${hour.temp}</div>
+      </div>
+    `).join('');
+
+    elements.forecastHours.innerHTML = hoursHTML;
+  },
+
+  showSampleDailyForecast() {
+    if (!elements.forecastDays) return;
+
+    const sampleDays = [
+      { day: 'Today', high: '20°', low: '12°', icon: './assets/images/icon-sunny.webp', alt: 'Sunny' },
+      { day: 'Wed', high: '22°', low: '14°', icon: './assets/images/icon-overcast.webp', alt: 'Overcast' },
+      { day: 'Thu', high: '18°', low: '10°', icon: './assets/images/icon-rainy.webp', alt: 'Rainy' },
+      { day: 'Fri', high: '25°', low: '16°', icon: './assets/images/icon-sunny.webp', alt: 'Sunny' },
+      { day: 'Sat', high: '23°', low: '15°', icon: './assets/images/icon-overcast.webp', alt: 'Overcast' },
+      { day: 'Sun', high: '21°', low: '13°', icon: './assets/images/icon-overcast.webp', alt: 'Overcast' },
+      { day: 'Mon', high: '19°', low: '11°', icon: './assets/images/icon-rainy.webp', alt: 'Rainy' }
+    ];
+
+    const daysHTML = sampleDays.map((day, index) => `
+      <div class="forecast-day" data-day="${index}">
+        <div class="day-name">${day.day}</div>
+        <img src="${day.icon}" alt="${day.alt}" class="day-icon">
+        <div class="day-temps">
+          <span class="temp-high">${day.high}</span>
+          <span class="temp-low">${day.low}</span>
+        </div>
+      </div>
+    `).join('');
+
+    elements.forecastDays.innerHTML = daysHTML;
   }
 };
 
@@ -1086,6 +1238,8 @@ const units = {
 
 // Initialize DOM elements
 const initializeElements = () => {
+  console.log('Initializing DOM elements...');
+
   // Weather display elements
   elements.currentLocation = document.getElementById('currentLocation');
   elements.currentDate = document.getElementById('currentDate');
@@ -1124,6 +1278,13 @@ const initializeElements = () => {
   elements.favoritesButton = document.getElementById('favoritesButton');
   elements.favoritesMenu = document.getElementById('favoritesMenu');
   elements.favoritesList = document.getElementById('favoritesList');
+
+  // Debug: Check if critical elements are found
+  console.log('Critical elements found:');
+  console.log('- loadingState:', !!elements.loadingState);
+  console.log('- weatherData:', !!elements.weatherData);
+  console.log('- errorState:', !!elements.errorState);
+  console.log('- retryButton:', !!elements.retryButton);
 };
 
 // Initialize app when DOM is loaded
@@ -1195,11 +1356,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Try to load current location weather
-  try {
-    geolocation.loadCurrentLocationWeather();
-  } catch (error) {
+  geolocation.loadCurrentLocationWeather().catch(error => {
     console.error('Failed to initialize geolocation:', error);
-  }
+  });
 
   console.log('Weather App initialized successfully');
 });
