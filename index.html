@@ -122,9 +122,6 @@
         </div>
       </header>
 
-      <!-- Main Title -->
-      <h1 class="main-title">How's the sky looking today?</h1>
-
       <!-- Search Section -->
       <section class="search-section">
         <div class="search-container">
@@ -152,6 +149,9 @@
 
       <!-- Weather Content -->
       <main class="weather-content" id="main-content">
+        <!-- Main Title -->
+        <h1 class="main-title">How's the sky looking today?</h1>
+
         <!-- Loading State -->
         <div class="loading-state" id="loadingState">
           <img src="./assets/images/icon-loading.svg" alt="Loading..." class="loading-icon">
@@ -161,7 +161,7 @@
         <!-- Error State -->
         <div class="error-state hidden" id="errorState">
           <img src="./assets/images/icon-error.svg" alt="Error" class="error-icon">
-          <h3>Something went wrong</h3>
+          <h2>Something went wrong</h2>
           <p id="errorMessage">Unable to load weather data. Please try again.</p>
           <button class="btn btn-primary" id="retryButton">
             <img src="./assets/images/icon-retry.svg" alt="">
@@ -220,7 +220,7 @@
 
             <!-- Daily Forecast -->
             <section class="daily-forecast card">
-              <h3 class="section-title" style="margin-bottom: 20px;">Daily forecast</h3>
+              <h2 class="section-title" style="margin-bottom: 20px;">Daily forecast</h2>
               <div class="forecast-days" id="forecastDays">
                 <!-- Daily forecast items will be populated here -->
                 <div class="forecast-day">
@@ -286,7 +286,7 @@
           <!-- Right Column - Hourly Forecast -->
           <section class="hourly-forecast card">
               <div class="hourly-header">
-                <h3 class="section-title">Hourly forecast</h3>
+                <h2 class="section-title">Hourly forecast</h2>
                 <select class="day-selector" id="daySelector" aria-label="Select day for hourly forecast">
                   <option value="0">Tuesday</option>
                   <option value="1">Wednesday</option>
@@ -298,7 +298,7 @@
                 </select>
               </div>
 
-              <div class="forecast-hours" id="forecastHours">
+              <div class="forecast-hours" id="forecastHours" tabindex="0" role="region" aria-label="Hourly weather forecast">
                 <!-- Hourly forecast items will be populated here -->
                 <div class="forecast-hour">
                   <div class="hour-time">3 PM</div>
