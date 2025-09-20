@@ -25,7 +25,7 @@ A comprehensive, responsive weather application built with vanilla HTML, CSS, an
 - **Accessibility**: Full keyboard navigation, screen reader support, reduced motion
 - **Performance**: Debounced search, efficient DOM updates, optimized animations
 
-| Desktop design | Mobile design |
+| Desktop view | Mobile view |
 | ------- | ------ |
 | ![Desktop](https://github.com/Ayokanmi-Adejola/Weather-App/blob/main/design/desktop-design-imperial.jpg?raw=true) | ![Mobile](https://github.com/Ayokanmi-Adejola/Weather-App/blob/main/design/mobile-design-imperial.jpg?raw=true) |
 
