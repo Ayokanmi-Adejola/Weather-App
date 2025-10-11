@@ -31,7 +31,7 @@ A comprehensive, responsive weather application built with vanilla HTML, CSS, an
 
 ## 🚀 Getting Started
 
-1. Clone or download the project files
+1. Clone or download the project files ```git clone https://github.com/Ayokanmi-Adejola/Weather-App```
 2. Open `index.html` in a modern web browser
 3. Allow location access for automatic weather detection (optional)
 4. Start exploring weather data for any location!
